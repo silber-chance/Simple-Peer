@@ -2,7 +2,7 @@ const common = require('./common')
 const Peer = require('../')
 const test = require('tape')
 
-let config
+let config = null;
 test('get config', function (t) {
   common.getConfig(function (err, _config) {
     if (err) return t.fail(err)
@@ -67,7 +67,6 @@ test('data send/receive Uint8Array', function (t) {
     peer1.send(new Uint8Array([0, 1, 2]))
     peer2.on('data', function (data) {
       // binary types always get converted to Buffer
-      // See: https://github.com/feross/simple-peer/issues/138#issuecomment-278240571
       t.ok(Buffer.isBuffer(data), 'data is Buffer')
       t.deepEqual(data, Buffer.from([0, 1, 2]), 'got correct message')
 
