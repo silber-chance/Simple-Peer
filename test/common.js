@@ -4,7 +4,6 @@ const bowser = require('bowser')
 
 exports.getConfig = thunky(function (cb) {
   // Includes TURN -- needed for tests to pass on Sauce Labs
-  // https://github.com/feross/simple-peer/issues/41
   // WARNING: This is *NOT* a public endpoint. Do not depend on it in your app.
   get.concat('https://instant.io/__rtcConfig__', function (err, res, data) {
     if (err) return cb(err)

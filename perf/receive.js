@@ -1,7 +1,5 @@
 // run in a browser and look at console for speed
-//   beefy perf/receive.js
-
-// 7.6MB
+// beefy perf/receive.js
 
 const prettierBytes = require('prettier-bytes')
 const speedometer = require('speedometer')
