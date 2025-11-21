@@ -124,18 +124,11 @@ class Peer extends stream.Duplex {
       this._onIceCandidate(event)
     }
 
-    // HACK: Fix for odd Firefox behavior, see: https://github.com/feross/simple-peer/pull/783
     if (typeof this._pc.peerIdentity === 'object') {
       this._pc.peerIdentity.catch(err => {
         this.destroy(errCode(err, 'ERR_PC_PEER_IDENTITY'))
       })
     }
-
-    // Other spec events, unused by this implementation:
-    // - onconnectionstatechange
-    // - onicecandidateerror
-    // - onfingerprintfailure
-    // - onnegotiationneeded
 
     if (this.initiator || this.channelNegotiated) {
       this._setupData({
@@ -169,8 +162,6 @@ class Peer extends stream.Duplex {
     return (this._channel && this._channel.bufferedAmount) || 0
   }
 
-  // HACK: it's possible channel.readyState is "closing" before peer.destroy() fires
-  // https://bugs.chromium.org/p/chromium/issues/detail?id=882743
   get connected () {
     return (this._connected && this._channel.readyState === 'open')
   }
@@ -267,7 +258,7 @@ class Peer extends stream.Duplex {
         this.destroy(errCode(err, 'ERR_ADD_TRANSCEIVER'))
       }
     } else {
-      this.emit('signal', { // request initiator to renegotiate
+      this.emit('signal', {
         type: 'transceiverRequest',
         transceiverRequest: { kind, init }
       })
@@ -357,7 +348,7 @@ class Peer extends stream.Duplex {
       this._pc.removeTrack(sender)
     } catch (err) {
       if (err.name === 'NS_ERROR_UNEXPECTED') {
-        this._sendersAwaitingStable.push(sender) // HACK: Firefox must wait until (signalingState === stable) https://bugzilla.mozilla.org/show_bug.cgi?id=1133874
+        this._sendersAwaitingStable.push(sender)
       } else {
         this.destroy(errCode(err, 'ERR_REMOVE_TRACK'))
       }
@@ -381,7 +372,7 @@ class Peer extends stream.Duplex {
 
   _needsNegotiation () {
     this._debug('_needsNegotiation')
-    if (this._batchedNegotiation) return // batch synchronous renegotiations
+    if (this._batchedNegotiation) return 
     this._batchedNegotiation = true
     queueMicrotask(() => {
       this._batchedNegotiation = false
@@ -405,7 +396,7 @@ class Peer extends stream.Duplex {
         this._debug('already negotiating, queueing')
       } else {
         this._debug('start negotiation')
-        setTimeout(() => { // HACK: Chrome crashes if we immediately call createOffer
+        setTimeout(() => { 
           this._createOffer()
         }, 0)
       }
@@ -437,7 +428,7 @@ class Peer extends stream.Duplex {
 
     this._debug('destroying (error: %s)', err && (err.message || err))
 
-    queueMicrotask(() => { // allow events concurrent with the call to _destroy() to fire (see #692)
+    queueMicrotask(() => { 
       this.destroyed = true
       this.destroying = false
 
@@ -471,7 +462,6 @@ class Peer extends stream.Duplex {
           this._channel.close()
         } catch (err) {}
 
-        // allow events concurrent with destruction to be handled
         this._channel.onmessage = null
         this._channel.onopen = null
         this._channel.onclose = null
@@ -482,7 +472,6 @@ class Peer extends stream.Duplex {
           this._pc.close()
         } catch (err) {}
 
-        // allow events concurrent with destruction to be handled
         this._pc.oniceconnectionstatechange = null
         this._pc.onicegatheringstatechange = null
         this._pc.onsignalingstatechange = null
@@ -572,13 +561,9 @@ class Peer extends stream.Duplex {
     }
   }
 
-  // When stream finishes writing, close socket. Half open connections are not
-  // supported.
   _onFinish () {
     if (this.destroyed) return
 
-    // Wait a bit before destroying so the socket flushes.
-    // TODO: is there a more reliable way to accomplish this?
     const destroySoon = () => {
       setTimeout(() => this.destroy(), 1000)
     }
@@ -627,7 +612,7 @@ class Peer extends stream.Duplex {
           this._debug('createOffer success')
           if (this.destroyed) return
           if (this.trickle || this._iceComplete) sendOffer()
-          else this.once('_iceComplete', sendOffer) // wait for candidates
+          else this.once('_iceComplete', sendOffer) 
         }
 
         const onError = err => {
@@ -647,7 +632,7 @@ class Peer extends stream.Duplex {
     if (this._pc.getTransceivers) {
       this._pc.getTransceivers().forEach(transceiver => {
         if (!transceiver.mid && transceiver.sender.track && !transceiver.requested) {
-          transceiver.requested = true // HACK: Safari returns negotiated transceivers with a null mid
+          transceiver.requested = true 
           this.addTransceiver(transceiver.sender.track.kind)
         }
       })
@@ -725,7 +710,6 @@ class Peer extends stream.Duplex {
   }
 
   getStats (cb) {
-    // statreports can come with a value array instead of properties
     const flattenValues = report => {
       if (Object.prototype.toString.call(report.values) === '[object Array]') {
         report.values.forEach(value => {
@@ -735,7 +719,6 @@ class Peer extends stream.Duplex {
       return report
     }
 
-    // Promise-based getStats() (standard)
     if (this._pc.getStats.length === 0 || this._isReactNativeWebrtc) {
       this._pc.getStats()
         .then(res => {
@@ -746,10 +729,8 @@ class Peer extends stream.Duplex {
           cb(null, reports)
         }, err => cb(err))
 
-    // Single-parameter callback-based getStats() (non-standard)
     } else if (this._pc.getStats.length > 0) {
       this._pc.getStats(res => {
-        // If we destroy connection in `connect` callback this code might happen to run when actual connection is already closed
         if (this.destroyed) return
 
         const reports = []
@@ -766,8 +747,6 @@ class Peer extends stream.Duplex {
         cb(null, reports)
       }, err => cb(err))
 
-    // Unknown browser, skip getStats() since it's anyone's guess which style of
-    // getStats() they implement.
     } else {
       cb(null, [])
     }
@@ -779,14 +758,12 @@ class Peer extends stream.Duplex {
 
     this._connecting = true
 
-    // HACK: We can't rely on order here, for details see https://github.com/js-platform/node-webrtc/issues/339
     const findCandidatePair = () => {
       if (this.destroyed) return
 
       this.getStats((err, items) => {
         if (this.destroyed) return
 
-        // Treat getStats error as non-fatal. It's not essential.
         if (err) items = []
 
         const remoteCandidates = {}
@@ -795,8 +772,6 @@ class Peer extends stream.Duplex {
         let foundSelectedCandidatePair = false
 
         items.forEach(item => {
-          // TODO: Once all browsers support the hyphenated stats report types, remove
-          // the non-hypenated ones
           if (item.type === 'remotecandidate' || item.type === 'remote-candidate') {
             remoteCandidates[item.id] = item
           }
@@ -814,15 +789,12 @@ class Peer extends stream.Duplex {
           let local = localCandidates[selectedCandidatePair.localCandidateId]
 
           if (local && (local.ip || local.address)) {
-            // Spec
             this.localAddress = local.ip || local.address
             this.localPort = Number(local.port)
           } else if (local && local.ipAddress) {
-            // Firefox
             this.localAddress = local.ipAddress
             this.localPort = Number(local.portNumber)
           } else if (typeof selectedCandidatePair.googLocalAddress === 'string') {
-            // TODO: remove this once Chrome 58 is released
             local = selectedCandidatePair.googLocalAddress.split(':')
             this.localAddress = local[0]
             this.localPort = Number(local[1])
@@ -834,15 +806,12 @@ class Peer extends stream.Duplex {
           let remote = remoteCandidates[selectedCandidatePair.remoteCandidateId]
 
           if (remote && (remote.ip || remote.address)) {
-            // Spec
             this.remoteAddress = remote.ip || remote.address
             this.remotePort = Number(remote.port)
           } else if (remote && remote.ipAddress) {
-            // Firefox
             this.remoteAddress = remote.ipAddress
             this.remotePort = Number(remote.portNumber)
           } else if (typeof selectedCandidatePair.googRemoteAddress === 'string') {
-            // TODO: remove this once Chrome 58 is released
             remote = selectedCandidatePair.googRemoteAddress.split(':')
             this.remoteAddress = remote[0]
             this.remotePort = Number(remote[1])

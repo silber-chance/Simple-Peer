@@ -1,5 +1,3 @@
-// run in a terminal, to do signaling for peers
-
 const ws = require('ws')
 
 const server = new ws.Server({

@@ -1,6 +1,3 @@
-// run in a browser, with:
-//   beefy perf/send.js
-
 const Peer = require('simple-peer')
 const stream = require('readable-stream')
 

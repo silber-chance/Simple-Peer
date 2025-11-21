@@ -268,7 +268,6 @@ test('ensure iceStateChange fires when connection failed', (t) => {
     t.end()
   })
 
-  // simulate concurrent iceConnectionStateChange and destroy()
   peer.destroy()
   peer._pc.oniceconnectionstatechange()
 })
