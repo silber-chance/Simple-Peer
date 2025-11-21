@@ -66,7 +66,7 @@ test('data send/receive Uint8Array', function (t) {
 
     peer1.send(new Uint8Array([0, 1, 2]))
     peer2.on('data', function (data) {
-      // binary types always get converted to Buffer
+
       t.ok(Buffer.isBuffer(data), 'data is Buffer')
       t.deepEqual(data, Buffer.from([0, 1, 2]), 'got correct message')
 
