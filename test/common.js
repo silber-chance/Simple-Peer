@@ -3,8 +3,7 @@ const thunky = require('thunky')
 const bowser = require('bowser')
 
 exports.getConfig = thunky(function (cb) {
-  // Includes TURN -- needed for tests to pass on Sauce Labs
-  // WARNING: This is *NOT* a public endpoint. Do not depend on it in your app.
+
   get.concat('https://instant.io/__rtcConfig__', function (err, res, data) {
     if (err) return cb(err)
     data = data.toString()
@@ -18,12 +17,12 @@ exports.getConfig = thunky(function (cb) {
   })
 })
 
-// For testing on node, we must provide a WebRTC implementation
+
 if (process.env.WRTC === 'wrtc') {
   exports.wrtc = require('wrtc')
 }
 
-// create a test MediaStream with two tracks
+
 let canvas
 exports.getMediaStream = function () {
   if (exports.wrtc) {
@@ -34,10 +33,10 @@ exports.getMediaStream = function () {
     if (!canvas) {
       canvas = document.createElement('canvas')
       canvas.width = canvas.height = 100
-      canvas.getContext('2d') // initialize canvas
+      canvas.getContext('2d') 
     }
     const stream = canvas.captureStream(30)
-    stream.addTrack(stream.getTracks()[0].clone()) // should have 2 tracks
+    stream.addTrack(stream.getTracks()[0].clone()) 
     return stream
   }
 }
@@ -45,7 +44,7 @@ exports.getMediaStream = function () {
 exports.isBrowser = function (name) {
   if (typeof (window) === 'undefined') return false
   const satifyObject = {}
-  if (name === 'ios') { // bowser can't directly name iOS Safari
+  if (name === 'ios') { 
     satifyObject.mobile = { safari: '>=0' }
   } else {
     satifyObject[name] = '>=0'
