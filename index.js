@@ -835,7 +835,6 @@ class Peer extends stream.Duplex {
             setSelectedCandidatePair(candidatePairs[item.selectedCandidatePairId])
           }
 
-          // Old implementations
           if (
             (item.type === 'googCandidatePair' && item.googActiveConnection === 'true') ||
             ((item.type === 'candidatepair' || item.type === 'candidate-pair') && item.selected)
@@ -844,8 +843,6 @@ class Peer extends stream.Duplex {
           }
         })
 
-        // Ignore candidate pair selection in browsers like Safari 11 that do not have any local or remote candidates
-        // But wait until at least 1 candidate pair is available
         if (!foundSelectedCandidatePair && (!Object.keys(candidatePairs).length || Object.keys(localCandidates).length)) {
           setTimeout(findCandidatePair, 100)
           return
@@ -868,8 +865,6 @@ class Peer extends stream.Duplex {
           cb(null)
         }
 
-        // If `bufferedAmountLowThreshold` and 'onbufferedamountlow' are unsupported,
-        // fallback to using setInterval to implement backpressure.
         if (typeof this._channel.bufferedAmountLowThreshold !== 'number') {
           this._interval = setInterval(() => this._onInterval(), 150)
           if (this._interval.unref) this._interval.unref()
@@ -932,7 +927,7 @@ class Peer extends stream.Duplex {
       this._iceComplete = true
       this.emit('_iceComplete')
     }
-    // as soon as we've received one valid candidate start timeout
+
     if (event.candidate) {
       this._startIceCompleteTimeout()
     }
@@ -980,12 +975,12 @@ class Peer extends stream.Duplex {
 
       if (this._remoteStreams.some(remoteStream => {
         return remoteStream.id === eventStream.id
-      })) return // Only fire one 'stream' event, even though there may be multiple tracks per stream
+      })) return 
 
       this._remoteStreams.push(eventStream)
       queueMicrotask(() => {
         this._debug('on stream')
-        this.emit('stream', eventStream) // ensure all tracks have been added
+        this.emit('stream', eventStream) 
       })
     })
   }
@@ -999,11 +994,7 @@ class Peer extends stream.Duplex {
 
 Peer.WEBRTC_SUPPORT = !!getBrowserRTC()
 
-/**
- * Expose peer and data channel config for overriding all Peer
- * instances. Otherwise, just set opts.config or opts.channelConfig
- * when constructing a Peer.
- */
+
 Peer.config = {
   iceServers: [
     {
